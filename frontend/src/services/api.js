@@ -288,6 +288,16 @@ export const customerService = {
     }
   },
 
+  // Send OTP for phone authentication
+  sendOtp: async (phoneData) => {
+    try {
+      const response = await api.post('/customer/api/phone-auth', phoneData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   // Verify OTP for phone authentication
   verifyOtp: async (otpData) => {
     try {

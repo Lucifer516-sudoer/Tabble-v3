@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { customerService, adminService } from '../../services/api';
+import { customerService } from '../../services/api';
 import {
   Container,
   Paper,
@@ -28,23 +28,6 @@ import LocalDiningIcon from '@mui/icons-material/LocalDining';
 import FoodBankIcon from '@mui/icons-material/FoodBank';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import PersonIcon from '@mui/icons-material/Person';
-import StorageIcon from '@mui/icons-material/Storage';
-import LockIcon from '@mui/icons-material/Lock';
-
-// Import Firebase
-import { initializeApp, getApp } from "firebase/app";
-import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
-
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyBOA_RmjYnh4h76JFRb78w9hlWMBoKp3_s",
-  authDomain: "tabble-v1.firebaseapp.com",
-  projectId: "tabble-v1",
-  storageBucket: "tabble-v1.firebasestorage.app",
-  messagingSenderId: "283822403606",
-  appId: "1:283822403606:web:149f91fcbbf69fb784c537",
-  measurementId: "G-DN0RNBFLK2"
-};
 
 const StyledTextField = styled(TextField)(({ theme }) => ({
   '& .MuiOutlinedInput-root': {
@@ -143,7 +126,7 @@ const CustomerLogin = () => {
   const [otpCode, setOtpCode] = useState('');
   const [otpError, setOtpError] = useState('');
   const [verifyingOtp, setVerifyingOtp] = useState(false);
-  const [confirmationResult, setConfirmationResult] = useState(null);
+  const [otpToken, setOtpToken] = useState(null);
 
   // Username dialog states
   const [showUsernameDialog, setShowUsernameDialog] = useState(false);
@@ -184,56 +167,6 @@ const CustomerLogin = () => {
     setUniqueId(generatedUniqueId);
   }, [navigate]);
 
-
-
-  // Initialize Firebase
-  useEffect(() => {
-    try {
-      // Check if Firebase is already initialized
-      let app;
-      try {
-        app = getApp();
-      } catch (error) {
-        app = initializeApp(firebaseConfig);
-      }
-
-      const auth = getAuth(app);
-
-      // Clear any existing reCAPTCHA verifier
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-      }
-
-      // Setup invisible reCAPTCHA
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'invisible',
-        'callback': () => {
-          console.log('reCAPTCHA verified');
-        },
-        'expired-callback': () => {
-          console.log('reCAPTCHA expired');
-        }
-      });
-
-      console.log('Firebase initialized successfully');
-    } catch (error) {
-      console.error('Firebase initialization error:', error);
-    }
-
-    return () => {
-      // Cleanup
-      try {
-        if (window.recaptchaVerifier) {
-          window.recaptchaVerifier.clear();
-        }
-      } catch (error) {
-        console.error('Error clearing reCAPTCHA:', error);
-      }
-    };
-  }, []);
-
-  // Unique ID is auto-generated on component mount
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -255,58 +188,24 @@ const CustomerLogin = () => {
       setLoginError('');
 
       try {
-        // Get Firebase Auth instance
-        let app;
-        try {
-          app = getApp();
-        } catch (error) {
-          app = initializeApp(firebaseConfig);
-        }
-        const auth = getAuth(app);
+        console.log('Requesting verification code for:', phoneNumber);
 
-        // Reset reCAPTCHA if it exists
-        if (window.recaptchaVerifier) {
-          try {
-            window.recaptchaVerifier.clear();
-          } catch (error) {
-            console.error('Error clearing reCAPTCHA:', error);
-          }
-        }
-
-        // Create new reCAPTCHA verifier
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          'size': 'invisible',
-          'callback': () => {
-            console.log('reCAPTCHA verified');
-          },
-          'expired-callback': () => {
-            console.log('reCAPTCHA expired');
-          }
+        const response = await customerService.sendOtp({
+          phone_number: phoneNumber,
+          table_number: parseInt(tableNumber, 10),
         });
 
-        console.log('Sending verification code to:', phoneNumber);
-
-        // Send OTP via Firebase
-        const appVerifier = window.recaptchaVerifier;
-        const confirmation = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
-        setConfirmationResult(confirmation);
-
-        console.log('Verification code sent successfully');
-
-        // Show OTP dialog
-        setShowOtpDialog(true);
-      } catch (error) {
-        console.error('Firebase auth error:', error);
-        setLoginError(`Failed to send verification code: ${error.message || 'Unknown error'}`);
-
-        // Reset reCAPTCHA
-        try {
-          if (window.recaptchaVerifier) {
-            window.recaptchaVerifier.clear();
-          }
-        } catch (clearError) {
-          console.error('Error clearing reCAPTCHA:', clearError);
+        if (response.success && response.token) {
+          setOtpToken(response.token);
+          console.log('Verification code sent successfully');
+          setShowOtpDialog(true);
+        } else {
+          throw new Error(response.message || 'Failed to send verification code.');
         }
+      } catch (error) {
+        console.error('OTP send error:', error);
+        const errorMessage = error.response?.data?.detail || error.message || 'An unknown error occurred.';
+        setLoginError(`Failed to send verification code: ${errorMessage}`);
       } finally {
         setIsLoading(false);
       }
@@ -314,8 +213,8 @@ const CustomerLogin = () => {
   };
 
   const handleVerifyOtp = async () => {
-    if (!otpCode || otpCode.length !== 6) {
-      setOtpError('Please enter a valid 6-digit OTP');
+    if (!otpCode || otpCode.length !== 5) {
+      setOtpError('Please enter a valid 5-digit OTP');
       return;
     }
 
@@ -323,33 +222,16 @@ const CustomerLogin = () => {
     setOtpError('');
 
     try {
-      // Check if confirmationResult exists
-      if (!confirmationResult) {
-        console.error('No confirmation result available');
-        setOtpError('Session expired. Please request a new OTP.');
-        setVerifyingOtp(false);
-        return;
-      }
-
       console.log('Verifying OTP:', otpCode);
 
-      // Verify OTP with Firebase
-      const userCredential = await confirmationResult.confirm(otpCode);
+      const response = await customerService.verifyOtp({
+        phone_number: phoneNumber,
+        verification_code: otpCode,
+        token: otpToken,
+        table_number: parseInt(tableNumber, 10),
+      });
 
-      if (!userCredential || !userCredential.user) {
-        throw new Error('Failed to authenticate with Firebase');
-      }
-
-      console.log('Firebase authentication successful');
-
-      try {
-        // Check if user exists in our database
-        const response = await customerService.verifyOtp({
-          phone_number: phoneNumber,
-          verification_code: otpCode,
-          table_number: parseInt(tableNumber)
-        });
-
+      if (response.success) {
         if (response.user_exists) {
           // Existing user - redirect to menu
           navigate(`/customer/menu?table_number=${tableNumber}&unique_id=${uniqueId}&user_id=${response.user_id}`);
@@ -358,27 +240,14 @@ const CustomerLogin = () => {
           setShowOtpDialog(false);
           setShowUsernameDialog(true);
         }
-      } catch (apiError) {
-        console.error('API verification error:', apiError);
-
-        // If Firebase auth succeeded but our API failed, still allow the user to proceed
-        // This is a fallback in case the backend is having issues
-        setShowOtpDialog(false);
-        setShowUsernameDialog(true);
+      } else {
+        // This case should ideally not be hit if backend uses HTTP exceptions
+        throw new Error(response.message || 'Verification failed.');
       }
     } catch (error) {
       console.error('OTP verification error:', error);
-
-      // Provide more specific error messages based on the error
-      if (error.code === 'auth/invalid-verification-code') {
-        setOtpError('The verification code you entered is invalid. Please check and try again.');
-      } else if (error.code === 'auth/code-expired') {
-        setOtpError('The verification code has expired. Please request a new one.');
-      } else if (error.code === 'auth/missing-verification-code') {
-        setOtpError('Please enter the verification code.');
-      } else {
-        setOtpError(`Verification failed: ${error.message || 'Please try again.'}`);
-      }
+      const errorMessage = error.response?.data?.detail || error.message || 'An unknown error occurred.';
+      setOtpError(`Verification failed: ${errorMessage}`);
     } finally {
       setVerifyingOtp(false);
     }
@@ -398,7 +267,7 @@ const CustomerLogin = () => {
       const response = await customerService.registerPhoneUser({
         phone_number: phoneNumber,
         username: username,
-        table_number: parseInt(tableNumber)
+        table_number: parseInt(tableNumber, 10)
       });
 
       // Redirect to menu
@@ -417,9 +286,6 @@ const CustomerLogin = () => {
 
   return (
     <Container maxWidth="xl" sx={{ px: { xs: 1, sm: 2 } }}>
-      {/* Hidden recaptcha container */}
-      <div id="recaptcha-container" style={{ position: 'fixed', bottom: 0, right: 0, visibility: 'hidden' }}></div>
-
       <Grid container spacing={2} alignItems="center" sx={{ minHeight: 'calc(100vh - 160px)' }}>
         {/* Left side: Form */}
         <Grid item xs={12} md={6}>
@@ -633,7 +499,7 @@ const CustomerLogin = () => {
         </DialogTitle>
         <DialogContent>
           <Typography variant="body1" sx={{ mb: 3, textAlign: 'center', color: 'rgba(255,255,255,0.7)' }}>
-            Enter the 6-digit code sent to {phoneNumber}
+            Enter the 5-digit code sent to {phoneNumber}
           </Typography>
 
           <StyledTextField
@@ -645,7 +511,7 @@ const CustomerLogin = () => {
             error={!!otpError}
             helperText={otpError}
             sx={{ mb: 2 }}
-            inputProps={{ maxLength: 6 }}
+            inputProps={{ maxLength: 5 }}
           />
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 0, justifyContent: 'center' }}>

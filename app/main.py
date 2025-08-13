@@ -55,14 +55,6 @@ if has_react_build:
     app.mount("/", StaticFiles(directory=react_build_dir, html=True), name="react")
 
 
-# Root route - serve React app in production, otherwise serve index.html template
-@app.get("/", response_class=HTMLResponse)
-async def root(request: Request):
-    if has_react_build:
-        return FileResponse(f"{react_build_dir}/index.html")
-    return templates.TemplateResponse("index.html", {"request": request})
-
-
 # Chef page
 @app.get("/chef", response_class=HTMLResponse)
 async def chef_page(request: Request):

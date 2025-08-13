@@ -15,7 +15,7 @@ from ..models.user import (
     PhoneVerifyRequest,
     UsernameRequest
 )
-from ..services import firebase_auth
+from ..services import otp_service
 from ..middleware import get_session_id
 
 router = APIRouter(
@@ -515,27 +515,28 @@ def get_person(person_id: int, request: Request, db: Session = Depends(get_sessi
 
 # Phone authentication endpoints
 @router.post("/api/phone-auth", response_model=Dict[str, Any])
-def phone_auth(auth_request: PhoneAuthRequest, request: Request, db: Session = Depends(get_session_database)):
+async def phone_auth(auth_request: PhoneAuthRequest, request: Request, db: Session = Depends(get_session_database)):
     """
     Initiate phone authentication by sending OTP
     """
     try:
-        # Validate phone number format
-        if not auth_request.phone_number.startswith("+91"):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Phone number must start with +91"
-            )
+        hotel_id = get_hotel_id_from_request(request)
+        if not hotel_id:
+            raise HTTPException(status_code=400, detail="No hotel context set")
 
-        # Send OTP via Firebase
-        result = firebase_auth.verify_phone_number(auth_request.phone_number)
+        # Send OTP via our new service
+        token = await otp_service.send_otp(
+            db=db,
+            phone_number=auth_request.phone_number,
+            hotel_id=hotel_id
+        )
 
         print(f"Phone auth initiated for: {auth_request.phone_number}, table: {auth_request.table_number}")
 
         return {
             "success": True,
             "message": "Verification code sent successfully",
-            "session_info": result.get("sessionInfo", "firebase-verification-token")
+            "token": token
         }
     except HTTPException as e:
         print(f"HTTP Exception in phone_auth: {e.detail}")
@@ -556,14 +557,15 @@ def verify_otp(verify_request: PhoneVerifyRequest, request: Request, db: Session
     try:
         print(f"Verifying OTP for phone: {verify_request.phone_number}")
 
-        # Verify OTP via Firebase
-        # Note: The actual OTP verification is done on the client side with Firebase
-        # This is just a validation step
-        firebase_auth.verify_otp(
-            verify_request.phone_number,
-            verify_request.verification_code
+        # Verify OTP via our new service
+        otp_service.verify_otp(
+            db=db,
+            token=verify_request.token,
+            otp=verify_request.verification_code,
+            phone_number=verify_request.phone_number
         )
 
+        # If verify_otp succeeds, proceed with the original logic.
         # Check if user exists in database for this hotel
         hotel_id = get_hotel_id_from_request(request)
         user = db.query(Person).filter(

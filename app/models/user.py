@@ -21,6 +21,7 @@ class PhoneAuthRequest(BaseModel):
 class PhoneVerifyRequest(BaseModel):
     phone_number: str
     verification_code: str
+    token: str
     table_number: int
 
 class UsernameRequest(BaseModel):

@@ -158,6 +158,7 @@ class Hotel(Base):
     feedback = relationship("Feedback", back_populates="hotel")
     loyalty_tiers = relationship("LoyaltyProgram", back_populates="hotel")
     selection_offers = relationship("SelectionOffer", back_populates="hotel")
+    otp_requests = relationship("OtpRequest", back_populates="hotel")
 
 
 class Dish(Base):
@@ -372,6 +373,19 @@ class Settings(Base):
 
     # Relationships
     hotel = relationship("Hotel", back_populates="settings")
+
+
+class OtpRequest(Base):
+    __tablename__ = "otp_requests"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    hotel_id = Column(Integer, ForeignKey("hotels.id"), nullable=False, index=True)
+    phone_number = Column(String, nullable=False, index=True)
+    otp_code = Column(String, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    verified = Column(Boolean, default=False)
+
+    hotel = relationship("Hotel", back_populates="otp_requests")
 
 
 # Function to switch database
