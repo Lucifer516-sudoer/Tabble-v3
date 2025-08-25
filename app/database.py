@@ -377,6 +377,15 @@ def create_tables():
     print("Database tables created/verified successfully")
 
 
+# Get database session (for non-session-scoped access like master router)
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 # Session-aware database functions with hotel context
 def get_session_db(session_id: str, hotel_id: Optional[int] = None):
     """Get database session for a specific session ID with hotel context"""

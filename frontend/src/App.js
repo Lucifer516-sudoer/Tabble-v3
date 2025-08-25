@@ -5,6 +5,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { Provider } from 'react-redux';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import MasterAdminPage from './pages/admin/MasterAdminPage';
 
 // Store and Query Client
 import { store } from './store';
@@ -44,9 +45,6 @@ const AnalysisDashboard = lazy(() => import('./pages/analysis/Dashboard'));
 const CustomerAnalysis = lazy(() => import('./pages/analysis/CustomerAnalysis'));
 const DishAnalysis = lazy(() => import('./pages/analysis/DishAnalysis'));
 const ChefAnalysis = lazy(() => import('./pages/analysis/ChefAnalysis'));
-
-// Master Admin Page (not lazy loaded for simplicity, as it's a single, small page)
-import MasterAdminPage from './pages/admin/MasterAdminPage';
 
 // Create a theme with luxury hotel aesthetic
 const theme = createTheme({
