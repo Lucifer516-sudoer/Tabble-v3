@@ -4,7 +4,7 @@ from typing import List, Dict, Any
 import uuid
 from datetime import datetime, timezone, timedelta
 
-from ..database import get_db, Dish, Order, OrderItem, Person, get_session_db, get_hotel_id_from_request
+from ..database import get_db, Dish, Order, OrderItem, Person
 from ..models.dish import Dish as DishModel
 from ..models.order import OrderCreate, Order as OrderModel
 from ..models.user import (
@@ -16,7 +16,6 @@ from ..models.user import (
     UsernameRequest
 )
 from ..services import firebase_auth
-from ..middleware import get_session_id
 
 router = APIRouter(
     prefix="/customer",
@@ -25,16 +24,10 @@ router = APIRouter(
 )
 
 
-# Dependency to get session-aware database
-def get_session_database(request: Request):
-    session_id = get_session_id(request)
-    return next(get_session_db(session_id))
-
-
 # Get all dishes for menu (only visible ones)
 @router.get("/api/menu", response_model=List[DishModel])
-def get_menu(request: Request, category: str = None, db: Session = Depends(get_session_database)):
-    hotel_id = get_hotel_id_from_request(request)
+def get_menu(request: Request, category: str = None, db: Session = Depends(get_db)):
+    hotel_id = 1
 
     if category:
         # Filter dishes that contain the specified category in their JSON array
@@ -68,8 +61,8 @@ def get_menu(request: Request, category: str = None, db: Session = Depends(get_s
 
 # Get offer dishes (only visible ones)
 @router.get("/api/offers", response_model=List[DishModel])
-def get_offers(request: Request, db: Session = Depends(get_session_database)):
-    hotel_id = get_hotel_id_from_request(request)
+def get_offers(request: Request, db: Session = Depends(get_db)):
+    hotel_id = 1
     dishes = db.query(Dish).filter(
         Dish.hotel_id == hotel_id,
         Dish.is_offer == 1,
@@ -80,8 +73,8 @@ def get_offers(request: Request, db: Session = Depends(get_session_database)):
 
 # Get special dishes (only visible ones)
 @router.get("/api/specials", response_model=List[DishModel])
-def get_specials(request: Request, db: Session = Depends(get_session_database)):
-    hotel_id = get_hotel_id_from_request(request)
+def get_specials(request: Request, db: Session = Depends(get_db)):
+    hotel_id = 1
     dishes = db.query(Dish).filter(
         Dish.hotel_id == hotel_id,
         Dish.is_special == 1,
@@ -92,8 +85,8 @@ def get_specials(request: Request, db: Session = Depends(get_session_database)):
 
 # Get all dish categories (only from visible dishes)
 @router.get("/api/categories")
-def get_categories(request: Request, db: Session = Depends(get_session_database)):
-    hotel_id = get_hotel_id_from_request(request)
+def get_categories(request: Request, db: Session = Depends(get_db)):
+    hotel_id = 1
     categories = db.query(Dish.category).filter(
         Dish.hotel_id == hotel_id,
         Dish.visibility == 1
@@ -122,8 +115,8 @@ def get_categories(request: Request, db: Session = Depends(get_session_database)
 
 # Register a new user or update existing user
 @router.post("/api/register", response_model=PersonModel)
-def register_user(user: PersonCreate, request: Request, db: Session = Depends(get_session_database)):
-    hotel_id = get_hotel_id_from_request(request)
+def register_user(user: PersonCreate, request: Request, db: Session = Depends(get_db)):
+    hotel_id = 1
 
     # Check if user already exists for this hotel
     db_user = db.query(Person).filter(
@@ -154,8 +147,8 @@ def register_user(user: PersonCreate, request: Request, db: Session = Depends(ge
 
 # Login user
 @router.post("/api/login", response_model=Dict[str, Any])
-def login_user(user_data: PersonLogin, request: Request, db: Session = Depends(get_session_database)):
-    hotel_id = get_hotel_id_from_request(request)
+def login_user(user_data: PersonLogin, request: Request, db: Session = Depends(get_db)):
+    hotel_id = 1
 
     # Find user by username for this hotel
     db_user = db.query(Person).filter(
@@ -192,9 +185,9 @@ def login_user(user_data: PersonLogin, request: Request, db: Session = Depends(g
 # Create new order
 @router.post("/api/orders", response_model=OrderModel)
 def create_order(
-    order: OrderCreate, request: Request, person_id: int = Query(None), db: Session = Depends(get_session_database)
+    order: OrderCreate, request: Request, person_id: int = Query(None), db: Session = Depends(get_db)
 ):
-    hotel_id = get_hotel_id_from_request(request)
+    hotel_id = 1
 
     # If person_id is not provided but we have a username/password, try to find or create the user
     if not person_id and hasattr(order, "username") and hasattr(order, "password"):
@@ -286,8 +279,8 @@ def create_order(
 
 # Get order status
 @router.get("/api/orders/{order_id}", response_model=OrderModel)
-def get_order(order_id: int, request: Request, db: Session = Depends(get_session_database)):
-    hotel_id = get_hotel_id_from_request(request)
+def get_order(order_id: int, request: Request, db: Session = Depends(get_db)):
+    hotel_id = 1
 
     # Use joinedload to load the dish relationship for each order item
     order = db.query(Order).filter(
@@ -312,8 +305,8 @@ def get_order(order_id: int, request: Request, db: Session = Depends(get_session
 
 # Get orders by person_id
 @router.get("/api/person/{person_id}/orders", response_model=List[OrderModel])
-def get_person_orders(person_id: int, request: Request, db: Session = Depends(get_session_database)):
-    hotel_id = get_hotel_id_from_request(request)
+def get_person_orders(person_id: int, request: Request, db: Session = Depends(get_db)):
+    hotel_id = 1
 
     # Get all orders for a specific person in this hotel
     orders = (
@@ -342,8 +335,8 @@ def get_person_orders(person_id: int, request: Request, db: Session = Depends(ge
 
 # Request payment for order
 @router.put("/api/orders/{order_id}/payment")
-def request_payment(order_id: int, request: Request, db: Session = Depends(get_session_database)):
-    hotel_id = get_hotel_id_from_request(request)
+def request_payment(order_id: int, request: Request, db: Session = Depends(get_db)):
+    hotel_id = 1
 
     try:
         # Check if order exists and is not already paid

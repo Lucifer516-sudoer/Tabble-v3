@@ -7,10 +7,9 @@ import shutil
 from datetime import datetime, timezone
 from ..utils.pdf_generator import generate_bill_pdf, generate_multi_order_bill_pdf
 
-from ..database import get_db, Order, Dish, OrderItem, Person, Settings, get_session_db, get_session_current_database, get_hotel_id_from_request
+from ..database import get_db, Order, Dish, OrderItem, Person, Settings
 from ..models.order import Order as OrderModel
 from ..models.dish import Dish as DishModel, DishCreate, DishUpdate
-from ..middleware import get_session_id
 
 router = APIRouter(
     prefix="/admin",
@@ -19,16 +18,10 @@ router = APIRouter(
 )
 
 
-# Dependency to get session-aware database
-def get_session_database(request: Request):
-    session_id = get_session_id(request)
-    return next(get_session_db(session_id))
-
-
 # Get all orders with customer information
 @router.get("/orders", response_model=List[OrderModel])
-def get_all_orders(request: Request, status: str = None, db: Session = Depends(get_session_database)):
-    hotel_id = get_hotel_id_from_request(request)
+def get_all_orders(request: Request, status: str = None, db: Session = Depends(get_db)):
+    hotel_id = 1
 
     query = db.query(Order).filter(Order.hotel_id == hotel_id)
 
@@ -69,9 +62,9 @@ def get_all_dishes(
     request: Request,
     is_offer: Optional[int] = None,
     is_special: Optional[int] = None,
-    db: Session = Depends(get_session_database),
+    db: Session = Depends(get_db),
 ):
-    hotel_id = get_hotel_id_from_request(request)
+    hotel_id = 1
 
     query = db.query(Dish).filter(
         Dish.hotel_id == hotel_id,
@@ -90,8 +83,8 @@ def get_all_dishes(
 
 # Get offer dishes (only visible ones)
 @router.get("/api/offers", response_model=List[DishModel])
-def get_offer_dishes(request: Request, db: Session = Depends(get_session_database)):
-    hotel_id = get_hotel_id_from_request(request)
+def get_offer_dishes(request: Request, db: Session = Depends(get_db)):
+    hotel_id = 1
     dishes = db.query(Dish).filter(
         Dish.hotel_id == hotel_id,
         Dish.is_offer == 1,
@@ -102,8 +95,8 @@ def get_offer_dishes(request: Request, db: Session = Depends(get_session_databas
 
 # Get special dishes (only visible ones)
 @router.get("/api/specials", response_model=List[DishModel])
-def get_special_dishes(request: Request, db: Session = Depends(get_session_database)):
-    hotel_id = get_hotel_id_from_request(request)
+def get_special_dishes(request: Request, db: Session = Depends(get_db)):
+    hotel_id = 1
     dishes = db.query(Dish).filter(
         Dish.hotel_id == hotel_id,
         Dish.is_special == 1,
@@ -114,8 +107,8 @@ def get_special_dishes(request: Request, db: Session = Depends(get_session_datab
 
 # Get dish by ID (only if visible)
 @router.get("/api/dishes/{dish_id}", response_model=DishModel)
-def get_dish(dish_id: int, request: Request, db: Session = Depends(get_session_database)):
-    hotel_id = get_hotel_id_from_request(request)
+def get_dish(dish_id: int, request: Request, db: Session = Depends(get_db)):
+    hotel_id = 1
     dish = db.query(Dish).filter(
         Dish.hotel_id == hotel_id,
         Dish.id == dish_id,
@@ -128,8 +121,8 @@ def get_dish(dish_id: int, request: Request, db: Session = Depends(get_session_d
 
 # Get all categories
 @router.get("/api/categories")
-def get_all_categories(request: Request, db: Session = Depends(get_session_database)):
-    hotel_id = get_hotel_id_from_request(request)
+def get_all_categories(request: Request, db: Session = Depends(get_db)):
+    hotel_id = 1
     categories = db.query(Dish.category).filter(
         Dish.hotel_id == hotel_id
     ).distinct().all()
@@ -177,8 +170,8 @@ def get_all_categories(request: Request, db: Session = Depends(get_session_datab
 
 # Create new category
 @router.post("/api/categories")
-def create_category(request: Request, category_name: str = Form(...), db: Session = Depends(get_session_database)):
-    hotel_id = get_hotel_id_from_request(request)
+def create_category(request: Request, category_name: str = Form(...), db: Session = Depends(get_db)):
+    hotel_id = 1
 
     # Check if category already exists for this hotel
     existing_category = (
@@ -209,9 +202,9 @@ async def create_dish(
     is_special: Optional[int] = Form(0),  # Whether this dish is today's special
     is_vegetarian: int = Form(...),  # Required: 1 = vegetarian, 0 = non-vegetarian
     image: Optional[UploadFile] = File(None),
-    db: Session = Depends(get_session_database),
+    db: Session = Depends(get_db),
 ):
-    hotel_id = get_hotel_id_from_request(request)
+    hotel_id = 1
 
     # Handle categories - support both single and multiple categories
     import json
@@ -291,9 +284,9 @@ async def update_dish(
     is_special: Optional[int] = Form(None),  # Whether this dish is today's special
     is_vegetarian: Optional[int] = Form(None),  # 1 = vegetarian, 0 = non-vegetarian
     image: Optional[UploadFile] = File(None),
-    db: Session = Depends(get_session_database),
+    db: Session = Depends(get_db),
 ):
-    hotel_id = get_hotel_id_from_request(request)
+    hotel_id = 1
 
     # Get existing dish for this hotel
     db_dish = db.query(Dish).filter(
@@ -338,21 +331,22 @@ async def update_dish(
 
     # Handle image upload if provided
     if image:
-        # Get current database name for organizing images
-        session_id = get_session_id(request)
-        current_db = get_session_current_database(session_id)
+        # Get hotel info for organizing images
+        from ..database import Hotel
+        hotel = db.query(Hotel).filter(Hotel.id == hotel_id).first()
+        hotel_name_for_path = hotel.hotel_name if hotel else f"hotel_{hotel_id}"
 
-        # Create directory structure: app/static/images/dishes/{db_name}
-        db_images_dir = f"app/static/images/dishes/{current_db}"
-        os.makedirs(db_images_dir, exist_ok=True)
+        # Create directory structure: app/static/images/dishes/{hotel_name}
+        hotel_images_dir = f"app/static/images/dishes/{hotel_name_for_path}"
+        os.makedirs(hotel_images_dir, exist_ok=True)
 
-        # Save image with database-specific path
-        image_path = f"{db_images_dir}/{db_dish.id}_{image.filename}"
+        # Save image with hotel-specific path
+        image_path = f"{hotel_images_dir}/{db_dish.id}_{image.filename}"
         with open(image_path, "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
 
         # Update dish with image path (URL path for serving)
-        db_dish.image_path = f"/static/images/dishes/{current_db}/{db_dish.id}_{image.filename}"
+        db_dish.image_path = f"/static/images/dishes/{hotel_name_for_path}/{db_dish.id}_{image.filename}"
 
     # Update timestamp
     db_dish.updated_at = datetime.now(timezone.utc)
@@ -366,8 +360,8 @@ async def update_dish(
 
 # Soft delete dish (set visibility to 0)
 @router.delete("/api/dishes/{dish_id}")
-def delete_dish(dish_id: int, request: Request, db: Session = Depends(get_session_database)):
-    hotel_id = get_hotel_id_from_request(request)
+def delete_dish(dish_id: int, request: Request, db: Session = Depends(get_db)):
+    hotel_id = 1
 
     db_dish = db.query(Dish).filter(
         Dish.hotel_id == hotel_id,
@@ -387,7 +381,7 @@ def delete_dish(dish_id: int, request: Request, db: Session = Depends(get_sessio
 
 # Get order statistics
 @router.get("/stats/orders")
-def get_order_stats(request: Request, db: Session = Depends(get_session_database)):
+def get_order_stats(request: Request, db: Session = Depends(get_db)):
     from sqlalchemy import func, and_
 
     # Get today's date range (start and end of today in UTC)
@@ -467,7 +461,7 @@ def get_order_stats(request: Request, db: Session = Depends(get_session_database
 
 # Mark order as paid
 @router.put("/orders/{order_id}/paid")
-def mark_order_paid(order_id: int, request: Request, db: Session = Depends(get_session_database)):
+def mark_order_paid(order_id: int, request: Request, db: Session = Depends(get_db)):
     db_order = db.query(Order).filter(Order.id == order_id).first()
     if db_order is None:
         raise HTTPException(status_code=404, detail="Order not found")
@@ -483,7 +477,7 @@ def mark_order_paid(order_id: int, request: Request, db: Session = Depends(get_s
 
 # Generate bill PDF for a single order
 @router.get("/orders/{order_id}/bill")
-def generate_bill(order_id: int, request: Request, db: Session = Depends(get_session_database)):
+def generate_bill(order_id: int, request: Request, db: Session = Depends(get_db)):
     # Get order with all details
     db_order = db.query(Order).filter(Order.id == order_id).first()
     if db_order is None:
@@ -503,7 +497,7 @@ def generate_bill(order_id: int, request: Request, db: Session = Depends(get_ses
                 item.dish = dish
 
     # Get hotel ID from request
-    hotel_id = get_hotel_id_from_request(request)
+    hotel_id = 1
 
     # Get hotel settings for this specific hotel
     settings = db.query(Settings).filter(Settings.hotel_id == hotel_id).first()
@@ -535,7 +529,7 @@ def generate_bill(order_id: int, request: Request, db: Session = Depends(get_ses
 
 # Generate bill PDF for multiple orders
 @router.post("/orders/multi-bill")
-def generate_multi_bill(order_ids: List[int], request: Request, db: Session = Depends(get_session_database)):
+def generate_multi_bill(order_ids: List[int], request: Request, db: Session = Depends(get_db)):
     if not order_ids:
         raise HTTPException(status_code=400, detail="No order IDs provided")
 
@@ -563,7 +557,7 @@ def generate_multi_bill(order_ids: List[int], request: Request, db: Session = De
         orders.append(db_order)
 
     # Get hotel ID from request
-    hotel_id = get_hotel_id_from_request(request)
+    hotel_id = 1
 
     # Get hotel settings for this specific hotel
     settings = db.query(Settings).filter(Settings.hotel_id == hotel_id).first()
@@ -596,7 +590,7 @@ def generate_multi_bill(order_ids: List[int], request: Request, db: Session = De
 
 # Merge two orders
 @router.post("/orders/merge")
-def merge_orders(source_order_id: int, target_order_id: int, request: Request, db: Session = Depends(get_session_database)):
+def merge_orders(source_order_id: int, target_order_id: int, request: Request, db: Session = Depends(get_db)):
     # Get both orders
     source_order = db.query(Order).filter(Order.id == source_order_id).first()
     target_order = db.query(Order).filter(Order.id == target_order_id).first()
@@ -637,7 +631,7 @@ def merge_orders(source_order_id: int, target_order_id: int, request: Request, d
 
 # Get completed orders for billing (paid orders)
 @router.get("/orders/completed-for-billing", response_model=List[OrderModel])
-def get_completed_orders_for_billing(request: Request, db: Session = Depends(get_session_database)):
+def get_completed_orders_for_billing(request: Request, db: Session = Depends(get_db)):
     # Get paid orders ordered by most recent first
     orders = db.query(Order).filter(Order.status == "paid").order_by(Order.created_at.desc()).all()
 

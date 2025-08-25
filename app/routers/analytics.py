@@ -5,12 +5,11 @@ from typing import List, Dict, Any
 from datetime import datetime, timedelta, timezone
 import calendar
 
-from ..database import get_db, Dish, Order, OrderItem, Person, Table, Feedback, get_session_db
+from ..database import get_db, Dish, Order, OrderItem, Person, Table, Feedback
 from ..models.dish import Dish as DishModel
 from ..models.order import Order as OrderModel
 from ..models.user import Person as PersonModel
 from ..models.feedback import Feedback as FeedbackModel
-from ..middleware import get_session_id
 
 router = APIRouter(
     prefix="/analytics",
@@ -19,19 +18,13 @@ router = APIRouter(
 )
 
 
-# Dependency to get session-aware database
-def get_session_database(request: Request):
-    session_id = get_session_id(request)
-    return next(get_session_db(session_id))
-
-
 # Get overall dashboard statistics
 @router.get("/dashboard")
 def get_dashboard_stats(
     request: Request,
     start_date: str = None,
     end_date: str = None,
-    db: Session = Depends(get_session_database)
+    db: Session = Depends(get_db)
 ):
     # Parse date strings to datetime objects if provided
     start_datetime = None
@@ -132,7 +125,7 @@ def get_dashboard_stats(
 
 # Get top customers by order count
 @router.get("/top-customers")
-def get_top_customers(request: Request, limit: int = 10, db: Session = Depends(get_session_database)):
+def get_top_customers(request: Request, limit: int = 10, db: Session = Depends(get_db)):
     # Get customers with most orders
     top_customers_by_orders = (
         db.query(
@@ -173,7 +166,7 @@ def get_top_customers(request: Request, limit: int = 10, db: Session = Depends(g
 
 # Get top selling dishes
 @router.get("/top-dishes")
-def get_top_dishes(request: Request, limit: int = 10, db: Session = Depends(get_session_database)):
+def get_top_dishes(request: Request, limit: int = 10, db: Session = Depends(get_db)):
     # Get dishes with most orders
     top_dishes = (
         db.query(
@@ -210,7 +203,7 @@ def get_top_dishes(request: Request, limit: int = 10, db: Session = Depends(get_
 
 # Get sales by category
 @router.get("/sales-by-category")
-def get_sales_by_category(request: Request, db: Session = Depends(get_session_database)):
+def get_sales_by_category(request: Request, db: Session = Depends(get_db)):
     # Get sales by category
     sales_by_category = (
         db.query(
@@ -240,7 +233,7 @@ def get_sales_by_category(request: Request, db: Session = Depends(get_session_da
 
 # Get sales over time (daily for the last 30 days)
 @router.get("/sales-over-time")
-def get_sales_over_time(request: Request, days: int = 30, db: Session = Depends(get_session_database)):
+def get_sales_over_time(request: Request, days: int = 30, db: Session = Depends(get_db)):
     # Calculate the date range
     end_date = datetime.now(timezone.utc)
     start_date = end_date - timedelta(days=days)
@@ -295,7 +288,7 @@ def get_sales_over_time(request: Request, days: int = 30, db: Session = Depends(
 
 # Get chef performance metrics
 @router.get("/chef-performance")
-def get_chef_performance(request: Request, days: int = 30, db: Session = Depends(get_session_database)):
+def get_chef_performance(request: Request, days: int = 30, db: Session = Depends(get_db)):
     # Calculate the date range
     end_date = datetime.now(timezone.utc)
     start_date = end_date - timedelta(days=days)
@@ -357,7 +350,7 @@ def get_chef_performance(request: Request, days: int = 30, db: Session = Depends
 
 # Get table utilization statistics
 @router.get("/table-utilization")
-def get_table_utilization(request: Request, db: Session = Depends(get_session_database)):
+def get_table_utilization(request: Request, db: Session = Depends(get_db)):
     # Get all tables
     tables = db.query(Table).all()
 
@@ -408,7 +401,7 @@ def get_customer_frequency(
     request: Request,
     start_date: str = None,
     end_date: str = None,
-    db: Session = Depends(get_session_database)
+    db: Session = Depends(get_db)
 ):
     # Parse date strings to datetime objects if provided
     start_datetime = None
@@ -485,7 +478,7 @@ def get_feedback_analysis(
     request: Request,
     start_date: str = None,
     end_date: str = None,
-    db: Session = Depends(get_session_database)
+    db: Session = Depends(get_db)
 ):
     # Parse date strings to datetime objects if provided
     start_datetime = None
