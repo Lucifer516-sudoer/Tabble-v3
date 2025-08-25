@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime, timezone
 
-from ..database import get_db, SelectionOffer as SelectionOfferModel, get_session_db, get_hotel_id_from_request
+from ..database import SelectionOffer as SelectionOfferModel, get_session_db, get_hotel_id_from_request
 from ..models.selection_offer import (
     SelectionOffer,
     SelectionOfferCreate,

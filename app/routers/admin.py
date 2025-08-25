@@ -7,7 +7,7 @@ import shutil
 from datetime import datetime, timezone
 from ..utils.pdf_generator import generate_bill_pdf, generate_multi_order_bill_pdf
 
-from ..database import get_db, Order, Dish, OrderItem, Person, Settings, get_session_db, get_session_current_database, get_hotel_id_from_request
+from ..database import Order, Dish, OrderItem, Person, Settings, get_session_db, get_session_current_database, get_hotel_id_from_request
 from ..models.order import Order as OrderModel
 from ..models.dish import Dish as DishModel, DishCreate, DishUpdate
 from ..middleware import get_session_id

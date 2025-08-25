@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime, timezone
 
-from ..database import get_db, Feedback as FeedbackModel, Order, Person, get_session_db, get_hotel_id_from_request
+from ..database import Feedback as FeedbackModel, Order, Person, get_session_db, get_hotel_id_from_request
 from ..models.feedback import Feedback, FeedbackCreate
 from ..middleware import get_session_id
 

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime, timezone
 
-from ..database import get_db, LoyaltyProgram as LoyaltyProgramModel, get_session_db, get_hotel_id_from_request
+from ..database import LoyaltyProgram as LoyaltyProgramModel, get_session_db, get_hotel_id_from_request
 from ..models.loyalty import LoyaltyProgram, LoyaltyProgramCreate, LoyaltyProgramUpdate
 from ..middleware import get_session_id
 

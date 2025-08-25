@@ -5,7 +5,7 @@ from typing import List, Dict, Any
 from datetime import datetime, timedelta, timezone
 import calendar
 
-from ..database import get_db, Dish, Order, OrderItem, Person, Table, Feedback, get_session_db
+from ..database import Dish, Order, OrderItem, Person, Table, Feedback, get_session_db
 from ..models.dish import Dish as DishModel
 from ..models.order import Order as OrderModel
 from ..models.user import Person as PersonModel

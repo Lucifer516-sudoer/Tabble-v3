@@ -7,8 +7,8 @@ from sqlalchemy.orm import Session
 import uvicorn
 import os
 
-from .database import get_db, create_tables
-from .routers import chef, customer, admin, feedback, loyalty, selection_offer, table, analytics, settings
+from .database import create_tables
+from .routers import chef, customer, admin, feedback, loyalty, selection_offer, table, analytics, settings, master
 from .middleware import SessionMiddleware
 
 # Create FastAPI app
@@ -42,6 +42,7 @@ app.include_router(selection_offer.router)
 app.include_router(table.router)
 app.include_router(analytics.router)
 app.include_router(settings.router)
+app.include_router(master.router)
 
 # Create database tables
 create_tables()

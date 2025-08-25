@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime, timezone
 
-from ..database import get_db, Table as TableModel, Order, get_session_db
+from ..database import Table as TableModel, Order, get_session_db
 from ..models.table import Table, TableCreate, TableUpdate, TableStatus
 from ..middleware import get_session_id
 

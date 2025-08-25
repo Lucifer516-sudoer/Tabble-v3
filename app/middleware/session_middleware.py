@@ -43,12 +43,9 @@ class SessionMiddleware(BaseHTTPMiddleware):
 
         # Skip session validation for certain endpoints
         skip_validation_endpoints = [
-            '/settings/databases',
-            '/settings/hotels',
-            '/settings/switch-database',
-            '/settings/switch-hotel',
-            '/settings/current-database',
-            '/settings/current-hotel'
+            '/settings/hotels',         # User needs to be able to see hotels before logging in
+            '/settings/hotel-login',    # The login endpoint itself should not require login
+            '/settings/current-hotel',  # Let the frontend check the current status
         ]
 
         # Skip validation for admin and chef routes - they handle their own database selection

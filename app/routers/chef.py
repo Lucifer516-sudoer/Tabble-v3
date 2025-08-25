@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime, timezone
 
-from ..database import get_db, Dish, Order, OrderItem, get_session_db, get_hotel_id_from_request
+from ..database import Dish, Order, OrderItem, get_session_db, get_hotel_id_from_request
 from ..models.dish import Dish as DishModel
 from ..models.order import Order as OrderModel
 from ..middleware import get_session_id

@@ -131,10 +131,6 @@ engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 session_factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 SessionLocal = scoped_session(session_factory)
 
-# Lock for thread safety when switching databases
-db_lock = threading.Lock()
-
-
 # Database models
 class Hotel(Base):
     __tablename__ = "hotels"
@@ -374,52 +370,11 @@ class Settings(Base):
     hotel = relationship("Hotel", back_populates="settings")
 
 
-# Function to switch database
-def switch_database(database_name):
-    global CURRENT_DATABASE, DATABASE_URL, engine, SessionLocal
-
-    with db_lock:
-        if database_name == CURRENT_DATABASE:
-            return  # Already using this database
-
-        # Update global variables
-        CURRENT_DATABASE = database_name
-        DATABASE_URL = f"sqlite:///./tabble_new.db" if database_name == "tabble_new.db" else f"sqlite:///./{database_name}"
-
-        # Dispose of the old engine and create a new one
-        engine.dispose()
-        engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-
-        # Create a new session factory and scoped session
-        session_factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-        SessionLocal.remove()
-        SessionLocal = scoped_session(session_factory)
-
-        # Create tables in the new database if they don't exist
-        create_tables()
-
-        print(f"Switched to database: {database_name}")
-
-
-# Get current database name
-def get_current_database():
-    return CURRENT_DATABASE
-
-
 # Create tables
 def create_tables():
     # Create all tables (only creates tables that don't exist)
     Base.metadata.create_all(bind=engine)
     print("Database tables created/verified successfully")
-
-
-# Get database session (legacy)
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 # Session-aware database functions with hotel context

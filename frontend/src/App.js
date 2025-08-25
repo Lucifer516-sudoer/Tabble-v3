@@ -45,6 +45,9 @@ const CustomerAnalysis = lazy(() => import('./pages/analysis/CustomerAnalysis'))
 const DishAnalysis = lazy(() => import('./pages/analysis/DishAnalysis'));
 const ChefAnalysis = lazy(() => import('./pages/analysis/ChefAnalysis'));
 
+// Master Admin Page (not lazy loaded for simplicity, as it's a single, small page)
+import MasterAdminPage from './pages/admin/MasterAdminPage';
+
 // Create a theme with luxury hotel aesthetic
 const theme = createTheme({
   palette: {
@@ -391,9 +394,19 @@ function App() {
               <Router>
                 <Suspense fallback={<PageLoadingSpinner message="Loading application..." />}>
                   <Routes>
-                  {/* Main Layout Routes */}
-                  <Route element={<Layout />}>
+                    {/* Master Admin Route (no layout) */}
                     <Route
+                      path="/master-admin"
+                      element={
+                        <ErrorBoundary>
+                          <MasterAdminPage />
+                        </ErrorBoundary>
+                      }
+                    />
+
+                    {/* Main Layout Routes */}
+                    <Route element={<Layout />}>
+                      <Route
                       path="/"
                       element={
                         <ErrorBoundary>

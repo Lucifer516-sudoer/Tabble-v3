@@ -4,7 +4,7 @@ from typing import List, Dict, Any
 import uuid
 from datetime import datetime, timezone, timedelta
 
-from ..database import get_db, Dish, Order, OrderItem, Person, get_session_db, get_hotel_id_from_request
+from ..database import Dish, Order, OrderItem, Person, get_session_db, get_hotel_id_from_request
 from ..models.dish import Dish as DishModel
 from ..models.order import OrderCreate, Order as OrderModel
 from ..models.user import (
