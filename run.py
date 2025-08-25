@@ -1,6 +1,10 @@
 import uvicorn
 import os
 import socket
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 def get_ip_address():
@@ -22,14 +26,11 @@ if __name__ == "__main__":
     # Create static/images directory if it doesn't exist
     os.makedirs("app/static/images", exist_ok=True)
 
-    # Check for force reset flag
-
     # Get the IP address
     ip_address = get_ip_address()
 
     # Display access information
     print("\n" + "=" * 50)
-
     print(f"Access from other devices at: http://{ip_address}:8000")
     print("=" * 50 + "\n")
 

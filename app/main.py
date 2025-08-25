@@ -1,15 +1,14 @@
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
 import uvicorn
 import os
 
-from .database import get_db, create_tables
+from .database import create_tables
 from .routers import chef, customer, admin, feedback, loyalty, selection_offer, table, analytics, settings
-from .middleware import SessionMiddleware
+from .config import settings
 
 # Create FastAPI app
 app = FastAPI(title="Tabble - Hotel Management App")
@@ -22,9 +21,6 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all methods
     allow_headers=["*"],  # Allow all headers
 )
-
-# Add session middleware for database management
-app.add_middleware(SessionMiddleware, require_database=True)
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
@@ -100,9 +96,6 @@ async def admin_page(request: Request):
 @app.get("/admin/dishes", response_class=HTMLResponse)
 async def admin_dishes_page(request: Request):
     return templates.TemplateResponse("admin/dishes.html", {"request": request})
-
-
-
 
 
 if __name__ == "__main__":

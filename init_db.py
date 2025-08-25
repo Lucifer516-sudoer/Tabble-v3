@@ -7,40 +7,43 @@ from app.database import (
     LoyaltyProgram,
     SelectionOffer,
     Table,
+    Hotel,
 )
 from sqlalchemy import create_engine
 from datetime import datetime, timezone
 import os
-import sys
+from app.config import settings
 
 
-def init_db(force_reset=False):
-    # Check if force_reset is enabled
-    if force_reset:
-        # Drop all tables and recreate them
-        print("Forcing database reset...")
-        Base.metadata.drop_all(
-            bind=create_engine(
-                "sqlite:///./tabble_new.db", connect_args={"check_same_thread": False}
-            )
-        )
-
+def init_db():
     # Create tables
+    engine = create_engine(settings.DATABASE_URL)
+    Base.metadata.drop_all(bind=engine)
     create_tables()
 
     # Create a database session
     db = SessionLocal()
 
-    # Check if dishes already exist
-    existing_dishes = db.query(Dish).count()
-    if existing_dishes > 0:
+    # Check if hotels already exist
+    existing_hotels = db.query(Hotel).count()
+    if existing_hotels > 0:
         print("Database already contains data. Skipping initialization.")
         return
+
+    # Add sample hotel
+    sample_hotel = Hotel(
+        hotel_name="Tabble Hotel",
+        password="password123",
+    )
+    db.add(sample_hotel)
+    db.commit()
+    db.refresh(sample_hotel)
 
     # Add sample dishes
     sample_dishes = [
         # Regular dishes
         Dish(
+            hotel_id=sample_hotel.id,
             name="Margherita Pizza",
             description="Classic pizza with tomato sauce, mozzarella, and basil",
             category='["Main Course", "Italian"]',
@@ -53,6 +56,7 @@ def init_db(force_reset=False):
             is_vegetarian=1,
         ),
         Dish(
+            hotel_id=sample_hotel.id,
             name="Caesar Salad",
             description="Fresh romaine lettuce with Caesar dressing, croutons, and parmesan",
             category='["Appetizer", "Salad"]',
@@ -65,6 +69,7 @@ def init_db(force_reset=False):
             is_vegetarian=1,
         ),
         Dish(
+            hotel_id=sample_hotel.id,
             name="Chocolate Cake",
             description="Rich chocolate cake with ganache frosting",
             category="Dessert",
@@ -76,6 +81,7 @@ def init_db(force_reset=False):
             is_special=0,
         ),
         Dish(
+            hotel_id=sample_hotel.id,
             name="Iced Tea",
             description="Refreshing iced tea with lemon",
             category="Beverage",
@@ -87,6 +93,7 @@ def init_db(force_reset=False):
             is_special=0,
         ),
         Dish(
+            hotel_id=sample_hotel.id,
             name="Chicken Alfredo",
             description="Fettuccine pasta with creamy Alfredo sauce and grilled chicken",
             category="Main Course",
@@ -97,6 +104,7 @@ def init_db(force_reset=False):
             is_offer=0,
         ),
         Dish(
+            hotel_id=sample_hotel.id,
             name="Garlic Bread",
             description="Toasted bread with garlic butter and herbs",
             category="Appetizer",
@@ -109,6 +117,7 @@ def init_db(force_reset=False):
         ),
         # Special offer dishes
         Dish(
+            hotel_id=sample_hotel.id,
             name="Weekend Special Pizza",
             description="Deluxe pizza with premium toppings and extra cheese",
             category="Main Course",
@@ -120,6 +129,7 @@ def init_db(force_reset=False):
             is_special=0,
         ),
         Dish(
+            hotel_id=sample_hotel.id,
             name="Seafood Pasta",
             description="Fresh pasta with mixed seafood in a creamy sauce",
             category="Main Course",
@@ -131,6 +141,7 @@ def init_db(force_reset=False):
             is_special=0,
         ),
         Dish(
+            hotel_id=sample_hotel.id,
             name="Tiramisu",
             description="Classic Italian dessert with coffee-soaked ladyfingers and mascarpone cream",
             category="Dessert",
@@ -143,6 +154,7 @@ def init_db(force_reset=False):
         ),
         # Today's special dishes
         Dish(
+            hotel_id=sample_hotel.id,
             name="Chef's Special Steak",
             description="Prime cut steak cooked to perfection with special house seasoning",
             category="Main Course",
@@ -154,6 +166,7 @@ def init_db(force_reset=False):
             is_special=1,
         ),
         Dish(
+            hotel_id=sample_hotel.id,
             name="Truffle Mushroom Risotto",
             description="Creamy risotto with wild mushrooms and truffle oil",
             category="Main Course",
@@ -165,6 +178,7 @@ def init_db(force_reset=False):
             is_special=1,
         ),
         Dish(
+            hotel_id=sample_hotel.id,
             name="Chocolate Lava Cake",
             description="Warm chocolate cake with a molten center, served with vanilla ice cream",
             category="Dessert",
@@ -184,18 +198,21 @@ def init_db(force_reset=False):
     # Add sample users
     sample_users = [
         Person(
+            hotel_id=sample_hotel.id,
             username="john_doe",
             password="password123",
             visit_count=1,
             last_visit=datetime.now(timezone.utc),
         ),
         Person(
+            hotel_id=sample_hotel.id,
             username="jane_smith",
             password="password456",
             visit_count=3,
             last_visit=datetime.now(timezone.utc),
         ),
         Person(
+            hotel_id=sample_hotel.id,
             username="guest",
             password="guest",
             visit_count=5,
@@ -210,6 +227,7 @@ def init_db(force_reset=False):
     # Add sample loyalty program tiers
     sample_loyalty_tiers = [
         LoyaltyProgram(
+            hotel_id=sample_hotel.id,
             visit_count=3,
             discount_percentage=5.0,
             is_active=True,
@@ -217,6 +235,7 @@ def init_db(force_reset=False):
             updated_at=datetime.now(timezone.utc),
         ),
         LoyaltyProgram(
+            hotel_id=sample_hotel.id,
             visit_count=5,
             discount_percentage=10.0,
             is_active=True,
@@ -224,6 +243,7 @@ def init_db(force_reset=False):
             updated_at=datetime.now(timezone.utc),
         ),
         LoyaltyProgram(
+            hotel_id=sample_hotel.id,
             visit_count=10,
             discount_percentage=15.0,
             is_active=True,
@@ -231,6 +251,7 @@ def init_db(force_reset=False):
             updated_at=datetime.now(timezone.utc),
         ),
         LoyaltyProgram(
+            hotel_id=sample_hotel.id,
             visit_count=20,
             discount_percentage=20.0,
             is_active=True,
@@ -246,6 +267,7 @@ def init_db(force_reset=False):
     # Add sample selection offers
     sample_selection_offers = [
         SelectionOffer(
+            hotel_id=sample_hotel.id,
             min_amount=50.0,
             discount_amount=5.0,
             is_active=True,
@@ -254,6 +276,7 @@ def init_db(force_reset=False):
             updated_at=datetime.now(timezone.utc),
         ),
         SelectionOffer(
+            hotel_id=sample_hotel.id,
             min_amount=100.0,
             discount_amount=15.0,
             is_active=True,
@@ -262,6 +285,7 @@ def init_db(force_reset=False):
             updated_at=datetime.now(timezone.utc),
         ),
         SelectionOffer(
+            hotel_id=sample_hotel.id,
             min_amount=150.0,
             discount_amount=25.0,
             is_active=True,
@@ -278,48 +302,56 @@ def init_db(force_reset=False):
     # Add sample tables
     sample_tables = [
         Table(
+            hotel_id=sample_hotel.id,
             table_number=1,
             is_occupied=False,
             created_at=datetime.now(timezone.utc),
             updated_at=datetime.now(timezone.utc),
         ),
         Table(
+            hotel_id=sample_hotel.id,
             table_number=2,
             is_occupied=False,
             created_at=datetime.now(timezone.utc),
             updated_at=datetime.now(timezone.utc),
         ),
         Table(
+            hotel_id=sample_hotel.id,
             table_number=3,
             is_occupied=False,
             created_at=datetime.now(timezone.utc),
             updated_at=datetime.now(timezone.utc),
         ),
         Table(
+            hotel_id=sample_hotel.id,
             table_number=4,
             is_occupied=False,
             created_at=datetime.now(timezone.utc),
             updated_at=datetime.now(timezone.utc),
         ),
         Table(
+            hotel_id=sample_hotel.id,
             table_number=5,
             is_occupied=False,
             created_at=datetime.now(timezone.utc),
             updated_at=datetime.now(timezone.utc),
         ),
         Table(
+            hotel_id=sample_hotel.id,
             table_number=6,
             is_occupied=False,
             created_at=datetime.now(timezone.utc),
             updated_at=datetime.now(timezone.utc),
         ),
         Table(
+            hotel_id=sample_hotel.id,
             table_number=7,
             is_occupied=False,
             created_at=datetime.now(timezone.utc),
             updated_at=datetime.now(timezone.utc),
         ),
         Table(
+            hotel_id=sample_hotel.id,
             table_number=8,
             is_occupied=False,
             created_at=datetime.now(timezone.utc),
@@ -349,8 +381,5 @@ if __name__ == "__main__":
     # Create static/images directory if it doesn't exist
     os.makedirs("app/static/images", exist_ok=True)
 
-    # Check for force reset flag
-    force_reset = "--force-reset" in sys.argv
-
     # Initialize database
-    init_db(force_reset)
+    init_db()
